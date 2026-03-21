@@ -1,12 +1,13 @@
 "use client";
 
 import { PROCESS_STATUS_DESCRIPTIONS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "./app-provider";
 
-export default function Console() {
+export default function Console(props: { className?: string }) {
   const { statusTrail } = useApp();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(true);
@@ -26,7 +27,9 @@ export default function Console() {
   if (statusTrail.length < 1) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 w-full">
+    <div
+      className={cn("fixed bottom-0 left-0 w-full border-t", props.className)}
+    >
       <motion.button
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

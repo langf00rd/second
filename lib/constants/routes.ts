@@ -4,4 +4,5 @@ export const ROUTES = {
     websiteSummary: "/onboarding/website-summary",
     questions: "/onboarding/questions",
   },
+  chat: "/chat",
 };

@@ -3,6 +3,7 @@
 import { useApp } from "@/components/app-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/constants/routes";
 import { goBack } from "@/lib/utils";
 import { ChevronRight, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -62,7 +63,7 @@ export default function Page() {
         <Button onClick={goBack} variant="ghost">
           Change website
         </Button>
-        <Button>
+        <Button onClick={() => router.push(ROUTES.chat)}>
           Continue
           <ChevronRight className="opacity-50" />
         </Button>
