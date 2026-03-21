@@ -3,17 +3,15 @@
 import { useApp } from "@/components/app-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ROUTES } from "@/lib/constants/routes";
 import { goBack } from "@/lib/utils";
-import { ChevronRight } from "lucide-react";
-import { ExternalLink } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Page() {
   const router = useRouter();
   const { scrapedWebsiteData } = useApp();
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 px-5 pb-32">
       <Avatar>
         <AvatarImage src={scrapedWebsiteData.metadata?.favicon || ""} />
         <AvatarFallback>SC</AvatarFallback>
@@ -34,7 +32,7 @@ export default function Page() {
           <h4 className="font-medium text-sm text-muted-foreground">
             Competitors
           </h4>
-          <div className="space-y-2">
+          <div className="space-y-2 grid grid-cols-2 md:grid-cols-3">
             {scrapedWebsiteData.competitors.map((competitor, index) => (
               <a
                 key={index}
@@ -64,7 +62,7 @@ export default function Page() {
         <Button onClick={goBack} variant="ghost">
           Change website
         </Button>
-        <Button onClick={() => router.push(ROUTES.onboarding.questions)}>
+        <Button>
           Continue
           <ChevronRight className="opacity-50" />
         </Button>

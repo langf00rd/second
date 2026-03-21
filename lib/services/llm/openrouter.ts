@@ -190,36 +190,43 @@ export async function extractCompetitorsFromContent(
   const { text } = await generateText({
     model: openrouter(options.model || "anthropic/claude-3-haiku"),
     system: `
-You are an AI that extracts competitor companies from scraped website content.
+You are an AI that extracts competitor and alternative companies from scraped website content.
 
 Your task:
-- Identify ONLY real competitor companies explicitly mentioned in the text
-- Extract their name and website URL
+- Scan the content for URLs and references to competing or alternative products/services/companies
+- Extract the website URL and company/product name for each competitor found
+- Include: direct competitors, alternatives, similar solutions, comparable products
 
 Rules:
-- DO NOT guess or infer competitors
-- ONLY include competitors that are clearly mentioned
-- Ignore directories, ads, unrelated links, social media, or marketplaces unless they are clearly competitors
-- If a company name is mentioned without a URL, ignore it
-- If a URL is present without a clear company name, infer the name from the domain
-- Normalize URLs (include https:// if missing)
-- Remove duplicates
+- Extract URLs from text even if not explicitly labeled as competitors (look for patterns like "unlike X", "alternative to Y", "similar to Z", competitor mentions, comparison pages, etc.)
+- If a URL is found with a company name nearby, use that name
+- If only a URL is found without a name, infer the name from the domain (e.g., "stripe.com" -> "Stripe")
+- Include https:// prefix for all URLs
+- Ignore social media links, app store links, or generic resource links unless they're clearly competitors
+- Deduplicate results
 
-Do not return markdown. Return JSON in this format:
+Do not return markdown. Return ONLY valid JSON in this format:
 {
   "competitors": [
     { "name": "Company Name", "url": "https://example.com" }
   ]
 }
 
-Do not return markdown. Return ONLY valid JSON.
+If no competitors are found, return:
+{ "competitors": [] }
 `,
     prompt: `
-Extract competitors from the following content:
+Extract all competitor and alternative companies from the following content. Look for:
+- URLs to competing products/services
+- Names of competing companies
+- Alternative solutions mentioned
+- Similar products or services
+
+Content to analyze:
 
 ${truncatedContent}
 `,
-    maxOutputTokens: 800,
+    maxOutputTokens: 1000,
   });
 
   try {

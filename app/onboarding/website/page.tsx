@@ -141,7 +141,7 @@ export default function Page() {
   };
 
   return (
-    <>
+    <div className="px-5">
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
           <Label className="text-xl">Paste your website or profile</Label>
@@ -178,6 +178,6 @@ export default function Page() {
           <ChevronRight className="opacity-50" />
         </Button>
       </form>
-    </>
+    </div>
   );
 }
