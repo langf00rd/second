@@ -227,10 +227,10 @@ ${truncatedContent}
 
     const competitors: Competitor[] = Array.isArray(parsed.competitors)
       ? parsed.competitors
-          .filter((c: any) => c?.name && c?.url)
-          .map((c: any) => ({
+          .filter((c: { name?: unknown; url?: unknown }) => c?.name && c?.url)
+          .map((c: { name?: unknown; url?: unknown }) => ({
             name: String(c.name).trim(),
-            url: normalizeUrl(c.url),
+            url: normalizeUrl(String(c.url)),
           }))
       : [];
 

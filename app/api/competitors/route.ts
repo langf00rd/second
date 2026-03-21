@@ -120,7 +120,7 @@ async function ddgSearch(
       const absolute = href.startsWith("//") ? `https:${href}` : href;
       const uddg = new URL(absolute).searchParams.get("uddg");
       url = uddg ? decodeURIComponent(uddg) : absolute;
-    } catch (_) {
+    } catch {
       url = href;
     }
 
