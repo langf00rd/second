@@ -64,11 +64,15 @@ export default function Page() {
   });
 
   const extractCompetitorsMutation = useMutation({
-    mutationFn: async ({ content }: { content: string }) => {
+    mutationFn: async ({
+      websites,
+    }: {
+      websites: Array<{ url: string; content: string }>;
+    }) => {
       const response = await fetch("/api/competitors-extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ websites }),
       });
       if (!response.ok) throw new Error("Failed to extract competitors");
       const { data } = await response.json();
@@ -115,7 +119,7 @@ export default function Page() {
       addStatus("extracting_competitors");
       const extractedCompetitors = await extractCompetitorsMutation.mutateAsync(
         {
-          content: competitors.competitor_context,
+          websites: competitors.websites,
         },
       );
 

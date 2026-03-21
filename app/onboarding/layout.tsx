@@ -29,7 +29,7 @@ export default function RootLayout({
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 10 }}
         transition={{ type: "tween" }}
-        className="w-100"
+        className="w-100 pb-10"
       >
         {children}
       </motion.div>
@@ -38,7 +38,7 @@ export default function RootLayout({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "tween" }}
-          className="fixed bottom-0 left-0 w-full h-40 border-t bg-neutral-100"
+          className="fixed bottom-0 left-0 w-full h-20 border-t bg-neutral-100"
         >
           <div className="absolute inset-x-0 top-0 h-8 bg-linear-to-b from-neutral-100 to-transparent pointer-events-none z-10" />
           <div

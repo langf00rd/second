@@ -40,7 +40,10 @@ export async function POST(request: NextRequest) {
       data: {
         search_results: searchResults,
         competitor_urls: competitorUrls,
-        scrape_results: scraped,
+        websites: scraped.map((s) => ({
+          url: s.url,
+          content: s.text,
+        })),
         competitor_context: scraped
           .map((s) => `--- ${s.url} ---\n${s.text}`)
           .join("\n\n"),

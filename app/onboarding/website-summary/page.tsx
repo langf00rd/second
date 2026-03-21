@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/constants/routes";
 import { goBack } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Page() {
@@ -28,6 +29,37 @@ export default function Page() {
       <div className="max-h-150 overflow-y-scroll">
         <p>{scrapedWebsiteData.llmSummary?.full}</p>
       </div>
+      {scrapedWebsiteData.competitors.length > 0 && (
+        <div className="mt-6 space-y-3">
+          <h4 className="font-medium text-sm text-muted-foreground">
+            Competitors
+          </h4>
+          <div className="space-y-2">
+            {scrapedWebsiteData.competitors.map((competitor, index) => (
+              <a
+                key={index}
+                href={competitor.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Avatar className="size-6">
+                  <AvatarImage
+                    src={`https://www.google.com/s2/favicons?domain=${competitor.url}&sz=32`}
+                  />
+                  <AvatarFallback className="text-xs">
+                    {competitor.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium truncate">
+                  {competitor.name}
+                </span>
+                <ExternalLink className="size-3 text-muted-foreground shrink-0" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex gap-2 justify-end mt-10">
         <Button onClick={goBack} variant="ghost">
           Change website
