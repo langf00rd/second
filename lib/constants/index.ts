@@ -1,6 +1,6 @@
 import { ProcessStatus } from "../types";
 
-export const MODEL = "anthropic/claude-3-haiku"; // anthropic/claude-3-haiku | openai/gpt-oss-120b:free
+export const MODEL = "openai/gpt-oss-120b:free"; // anthropic/claude-3-haiku | openai/gpt-oss-120b:free
 
 export const PROCESS_STATUS_DESCRIPTIONS: Record<ProcessStatus, string> = {
   scraping: "Reading your website...",

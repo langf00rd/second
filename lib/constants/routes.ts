@@ -1,8 +1,7 @@
 export const ROUTES = {
-  onboarding: {
-    root: "/onboarding",
-    websiteSummary: "/onboarding/website-summary",
-    questions: "/onboarding/questions",
-  },
   chat: "/chat",
+  setup: {
+    root: "/setup",
+    summary: "/setup/summary",
+  },
 };

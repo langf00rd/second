@@ -1,5 +1,6 @@
 "use client";
 
+import { setWebsiteSummaryCookie } from "@/app/actions/chat";
 import { useApp } from "@/components/app-provider";
 import ErrorBanner from "@/components/error-banner";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { setWebsiteSummaryCookie } from "@/app/actions/chat";
 
 export default function Page() {
   const router = useRouter();
@@ -144,11 +144,11 @@ export default function Page() {
           url,
           llmSummary,
           competitors: extractedCompetitors,
-        }
+        },
       );
 
       addStatus("complete");
-      router.push(ROUTES.onboarding.websiteSummary);
+      router.push(ROUTES.setup.summary);
     } catch (err) {
       console.error(err);
       addStatus("error");
