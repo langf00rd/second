@@ -17,7 +17,13 @@ import { toast } from "sonner";
 export default function Page() {
   const router = useRouter();
   const [url, setURL] = useState("");
-  const { setWebsiteURL, websiteURL, setScrapedWebsiteData } = useApp();
+  const {
+    setWebsiteURL,
+    websiteURL,
+    setScrapedWebsiteData,
+    addStatus,
+    clearTrail,
+  } = useApp();
 
   const scrapeQuery = useQuery({
     queryKey: ["scrape-website", url],
@@ -80,21 +86,33 @@ export default function Page() {
   const handleSubmit = async (evt: React.FormEvent) => {
     evt.preventDefault();
 
+    clearTrail();
+
     try {
+      addStatus("scraping");
       const [scrapeResult, metadataResult] = await Promise.all([
         scrapeQuery.refetch(),
         metadataQuery.refetch(),
       ]);
 
-      if (scrapeResult.error || metadataResult.error) return;
+      if (scrapeResult.error || metadataResult.error) {
+        addStatus("error");
+        return;
+      }
 
+      addStatus("extracting_metadata");
       const content = scrapeResult.data?.data || "";
       const metadata = metadataResult.data?.data || null;
 
+      addStatus("generating_summary");
       const llmSummary = await summarizeMutation.mutateAsync({ content });
+
+      addStatus("fetching_competitors");
       const competitors = await competitorsMutation.mutateAsync({
         industry: llmSummary.industry,
       });
+
+      addStatus("extracting_competitors");
       const extractedCompetitors = await extractCompetitorsMutation.mutateAsync(
         {
           content: competitors.competitor_context,
@@ -109,9 +127,11 @@ export default function Page() {
         competitors: extractedCompetitors,
       });
 
+      addStatus("complete");
       router.push(ROUTES.onboarding.websiteSummary);
     } catch (err) {
       console.error(err);
+      addStatus("error");
       toast.error("Failed to analyze website");
     }
   };

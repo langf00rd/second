@@ -1,12 +1,20 @@
 "use client";
 
 import { Competitor } from "@/lib/services/llm/openrouter";
-import { Question, WebsiteMetadata } from "@/lib/types";
+import { ProcessStatus, Question, WebsiteMetadata } from "@/lib/types";
 import { createContext, useContext, useState, type ReactNode } from "react";
+
+export type StatusEntry = {
+  status: ProcessStatus;
+  timestamp: number;
+};
 
 interface AppState {
   websiteURL: string;
   setWebsiteURL: React.Dispatch<React.SetStateAction<string>>;
+  statusTrail: StatusEntry[];
+  addStatus: (status: ProcessStatus) => void;
+  clearTrail: () => void;
   questions: Question[];
   setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
   scrapedWebsiteData: {
@@ -31,7 +39,17 @@ const AppContext = createContext<AppState | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [websiteURL, setWebsiteURL] = useState("");
+  const [statusTrail, setStatusTrail] = useState<StatusEntry[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
+
+  const addStatus = (status: ProcessStatus) => {
+    setStatusTrail((prev) => [...prev, { status, timestamp: Date.now() }]);
+  };
+
+  const clearTrail = () => {
+    setStatusTrail([]);
+  };
+
   const [scrapedWebsiteData, setScrapedWebsiteData] = useState<{
     metadata: WebsiteMetadata | null;
     data: string | null;
@@ -51,6 +69,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         websiteURL,
         setWebsiteURL,
+        statusTrail,
+        addStatus,
+        clearTrail,
         questions,
         setQuestions,
         scrapedWebsiteData,

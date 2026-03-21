@@ -24,3 +24,12 @@ export interface Question {
   type: "single_select" | "multi_select" | "slider" | "number" | "text";
   options?: string[];
 }
+
+export type ProcessStatus =
+  | "scraping"
+  | "extracting_metadata"
+  | "generating_summary"
+  | "fetching_competitors"
+  | "extracting_competitors"
+  | "complete"
+  | "error";
