@@ -13,6 +13,7 @@ import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { setWebsiteSummaryCookie } from "@/app/actions/chat";
 
 export default function Page() {
   const router = useRouter();
@@ -130,6 +131,21 @@ export default function Page() {
         competitorsContext: competitors.competitor_context,
         competitors: extractedCompetitors,
       });
+
+      await setWebsiteSummaryCookie(
+        {
+          goal: llmSummary.goal,
+          full: llmSummary.full,
+          industry: llmSummary.industry,
+          competitorKeywords: llmSummary.competitor_keywords,
+        },
+        {
+          metadata,
+          url,
+          llmSummary,
+          competitors: extractedCompetitors,
+        }
+      );
 
       addStatus("complete");
       router.push(ROUTES.onboarding.websiteSummary);

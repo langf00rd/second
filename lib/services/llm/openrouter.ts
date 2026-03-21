@@ -183,12 +183,11 @@ Based on this, select the most relevant questions.
 
 export async function extractCompetitorsFromContent(
   content: string,
-  options: { model?: string } = {},
 ): Promise<Competitor[]> {
   const truncatedContent = content.slice(0, 50000);
 
   const { text } = await generateText({
-    model: openrouter(options.model || "anthropic/claude-3-haiku"),
+    model: openrouter(MODEL),
     system: `
 You are an AI that extracts competitor and alternative companies from scraped website content.
 
