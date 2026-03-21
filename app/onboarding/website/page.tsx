@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { ROUTES } from "@/lib/constants/routes";
 import { fetchWebsiteMetadata } from "@/lib/services/metadata";
 import { scrapeWebsite } from "@/lib/services/scraper";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export default function Page() {
@@ -30,46 +31,94 @@ export default function Page() {
     enabled: false,
   });
 
-  useEffect(() => {
-    async function handleScrapeComplete() {
-      const scrapeQueryData = scrapeQuery.data;
-      const metadataQueryData = metadataQuery.data;
-      if (scrapeQueryData && metadataQueryData) {
-        try {
-          const response = await fetch("/api/summarize-website", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: scrapeQueryData.data }),
-          });
-          if (!response.ok) throw new Error("Failed to summarize");
-          const { data: llmSummary } = await response.json();
-          setScrapedWebsiteData((prev) => ({
-            ...prev,
-            metadata: metadataQueryData.data,
-            data: scrapeQueryData.data,
-            llmSummary,
-          }));
-          router.push(ROUTES.onboarding.websiteSummary);
-        } catch (err) {
-          console.error(err);
-          toast.error("Failed to summarize website content");
-        }
-      }
-    }
+  const summarizeMutation = useMutation({
+    mutationFn: async ({ content }: { content: string }) => {
+      const response = await fetch("/api/summarize-website", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!response.ok) throw new Error("Failed to summarize");
+      const { data } = await response.json();
+      return data;
+    },
+  });
 
-    handleScrapeComplete();
-  }, [router, scrapeQuery.data, metadataQuery.data, setScrapedWebsiteData]);
+  const competitorsMutation = useMutation({
+    mutationFn: async ({ industry }: { industry: string }) => {
+      const response = await fetch("/api/competitors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ business_description: industry }),
+      });
+      if (!response.ok) throw new Error("Failed to fetch competitors");
+      const { data } = await response.json();
+      return data;
+    },
+  });
+
+  const extractCompetitorsMutation = useMutation({
+    mutationFn: async ({ content }: { content: string }) => {
+      const response = await fetch("/api/competitors-extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!response.ok) throw new Error("Failed to extract competitors");
+      const { data } = await response.json();
+      return data;
+    },
+  });
+
+  const isLoading =
+    scrapeQuery.isFetching ||
+    metadataQuery.isFetching ||
+    summarizeMutation.isPending ||
+    competitorsMutation.isPending ||
+    extractCompetitorsMutation.isPending;
+
+  const handleSubmit = async (evt: React.FormEvent) => {
+    evt.preventDefault();
+
+    try {
+      const [scrapeResult, metadataResult] = await Promise.all([
+        scrapeQuery.refetch(),
+        metadataQuery.refetch(),
+      ]);
+
+      if (scrapeResult.error || metadataResult.error) return;
+
+      const content = scrapeResult.data?.data || "";
+      const metadata = metadataResult.data?.data || null;
+
+      const llmSummary = await summarizeMutation.mutateAsync({ content });
+      const competitors = await competitorsMutation.mutateAsync({
+        industry: llmSummary.industry,
+      });
+      const extractedCompetitors = await extractCompetitorsMutation.mutateAsync(
+        {
+          content: competitors.competitor_context,
+        },
+      );
+
+      setScrapedWebsiteData({
+        metadata,
+        data: content,
+        llmSummary,
+        competitorsContext: competitors.competitor_context,
+        competitors: extractedCompetitors,
+      });
+
+      router.push(ROUTES.onboarding.websiteSummary);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to analyze website");
+    }
+  };
 
   return (
     <>
-      <form
-        className="space-y-6"
-        onSubmit={(evt) => {
-          evt.preventDefault();
-          metadataQuery.refetch();
-          scrapeQuery.refetch();
-        }}
-      >
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
           <Label className="text-xl">Paste your website or profile</Label>
           <small className="text-accent-foreground">
@@ -91,8 +140,18 @@ export default function Page() {
         />
         {scrapeQuery.error && <ErrorBanner error={scrapeQuery.error} />}
         {metadataQuery.error && <ErrorBanner error={metadataQuery.error} />}
-        <Button isLoading={scrapeQuery.isFetching} type="submit">
+        {summarizeMutation.error && (
+          <ErrorBanner error={summarizeMutation.error} />
+        )}
+        {competitorsMutation.error && (
+          <ErrorBanner error={competitorsMutation.error} />
+        )}
+        {extractCompetitorsMutation.error && (
+          <ErrorBanner error={extractCompetitorsMutation.error} />
+        )}
+        <Button type="submit" isLoading={isLoading}>
           Analyze
+          <ChevronRight className="opacity-50" />
         </Button>
       </form>
     </>

@@ -1,21 +1,28 @@
 "use client";
 
-import { WebsiteMetadata } from "@/lib/types";
+import { Competitor } from "@/lib/services/llm/openrouter";
+import { Question, WebsiteMetadata } from "@/lib/types";
 import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface AppState {
   websiteURL: string;
   setWebsiteURL: React.Dispatch<React.SetStateAction<string>>;
+  questions: Question[];
+  setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
   scrapedWebsiteData: {
     metadata: WebsiteMetadata | null;
     data: string | null;
-    llmSummary: { goal: string; full: string } | null;
+    llmSummary: { goal: string; full: string; industry: string } | null;
+    competitorsContext: string | null;
+    competitors: Competitor[];
   };
   setScrapedWebsiteData: React.Dispatch<
     React.SetStateAction<{
       metadata: WebsiteMetadata | null;
       data: string | null;
-      llmSummary: { goal: string; full: string } | null;
+      llmSummary: { goal: string; full: string; industry: string } | null;
+      competitorsContext: string | null;
+      competitors: Competitor[];
     }>
   >;
 }
@@ -24,14 +31,19 @@ const AppContext = createContext<AppState | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [websiteURL, setWebsiteURL] = useState("");
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [scrapedWebsiteData, setScrapedWebsiteData] = useState<{
     metadata: WebsiteMetadata | null;
     data: string | null;
-    llmSummary: { goal: string; full: string } | null;
+    llmSummary: { goal: string; full: string; industry: string } | null;
+    competitorsContext: string | null;
+    competitors: Competitor[];
   }>({
     metadata: null,
     data: null,
     llmSummary: null,
+    competitorsContext: null,
+    competitors: [],
   });
 
   return (
@@ -39,6 +51,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         websiteURL,
         setWebsiteURL,
+        questions,
+        setQuestions,
         scrapedWebsiteData,
         setScrapedWebsiteData,
       }}

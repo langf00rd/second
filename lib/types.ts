@@ -7,3 +7,20 @@ export interface WebsiteMetadata {
   og_description?: string;
   favicon?: string;
 }
+
+type QuestionKey =
+  | "who_pays"
+  | "deal_size"
+  | "capacity"
+  | "acquisition_source"
+  | "creativity"
+  | "location"
+  | "priority_service"
+  | "urgency";
+
+export interface Question {
+  key: QuestionKey;
+  question: string;
+  type: "single_select" | "multi_select" | "slider" | "number" | "text";
+  options?: string[];
+}
