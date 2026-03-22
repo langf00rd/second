@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/constants/routes";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Balancer } from "react-wrap-balancer";
@@ -16,10 +17,10 @@ export default function Home() {
             who to target, what to say, and when to act.
           </Balancer>
         </p>
-        <Link href="https://tally.so/r/1AEeaO" target="_blank">
+        <Link href={ROUTES.chat}>
           <Button size="lg" className="scale-110">
             <PlusIcon className="opacity-50" />
-            Get Early Access
+            Get Started
             <PlusIcon className="opacity-50" />
           </Button>
         </Link>
