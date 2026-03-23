@@ -2,26 +2,41 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  addChatMessage,
+  getChatMessages,
+  updateChatTitle,
+} from "@/lib/supabase/db";
 import { cn } from "@/lib/utils";
-import { AnimatePresence, motion } from "framer-motion";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
 import {
   ArrowRight,
   Copy,
+  Loader2,
   MoreHorizontal,
   RotateCcw,
   Share,
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
+interface ChatViewProps {
+  chatId?: string | null;
 }
 
-type Status = "idle" | "submitted" | "streaming";
+function extractTextContent(message: UIMessage): string {
+  if (!message.parts || !Array.isArray(message.parts)) {
+    return "";
+  }
+  return message.parts
+    .filter((part) => isTextUIPart(part))
+    .map((part) => part.text)
+    .join("");
+}
 
 const LLMLogo = ({
   size = 28,
@@ -96,7 +111,7 @@ function InlineFormat({ text }: { text: string }) {
 
 function RenderContent({ text }: { text: string }) {
   const lines = text.split("\n");
-  const elements: JSX.Element[] = [];
+  const elements: ReactNode[] = [];
   let i = 0;
 
   while (i < lines.length) {
@@ -160,44 +175,40 @@ function RenderContent({ text }: { text: string }) {
   return <>{elements}</>;
 }
 
-const MOCK_RESPONSE = `Yes—50,000 characters can be an issue, but not in the way most people think. The real constraints are:
-
-## 1. Context window limits (hard constraint)
-
-50k chars ≈ 12k–20k tokens depending on content density.
-
-So:
-
-- **Claude 3 Haiku** → usually fine (but tight depending on full prompt + output)
-- **GPT-4o-mini** → fine
-- Smaller/cheaper models → may truncate internally or degrade quality
-
-Risk:
-
-- silent truncation of important sections
-- competitors buried in middle get missed
-
----
-
-## 2. Signal dilution (actual bigger problem)
-
-Even if it fits, performance drops because:
-
-- nav bars
-- cookie banners
-- repeated footer links
-- unrelated blog content
-
-LLM attention becomes: "search noise instead of extraction"
-
-You'll need both.`;
-
-export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function ChatView({ chatId }: ChatViewProps) {
   const [input, setInput] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastLoadedChatRef = useRef<string | null>(null);
+
+  const { messages, sendMessage, status, error, setMessages } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
+  });
+
+  useEffect(() => {
+    async function loadChat() {
+      if (!chatId) return;
+      if (lastLoadedChatRef.current === chatId) return;
+
+      lastLoadedChatRef.current = chatId;
+
+      const chatMessages = await getChatMessages(chatId);
+
+      if (chatMessages.length > 0) {
+        const loadedMessages: UIMessage[] = chatMessages.map((msg) => ({
+          id: msg.id,
+          role: msg.role as "user" | "assistant" | "system",
+          parts: [{ type: "text" as const, text: msg.content }],
+          createdAt: new Date(msg.created_at),
+        }));
+        setMessages(loadedMessages);
+      }
+    }
+
+    loadChat();
+  }, [chatId, setMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -210,41 +221,55 @@ export default function ChatInterface() {
     ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
   }, [input]);
 
-  const handleSubmit = async () => {
-    if (!input.trim() || status !== "idle") return;
+  useEffect(() => {
+    async function saveAssistantMessage() {
+      if (!chatId || status !== "ready") return;
 
-    const userMsg: Message = {
-      id: `${Date.now()}`,
-      role: "user",
-      content: input.trim(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-    setStatus("submitted");
-
-    await new Promise((r) => setTimeout(r, 500));
-    setStatus("streaming");
-
-    const assistantId = `${Date.now() + 1}`;
-    setMessages((prev) => [
-      ...prev,
-      { id: assistantId, role: "assistant", content: "" },
-    ]);
-
-    let acc = "";
-    for (const char of MOCK_RESPONSE) {
-      acc += char;
-      const snapshot = acc;
-      await new Promise((r) => setTimeout(r, 10));
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId ? { ...m, content: snapshot } : m,
-        ),
-      );
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.role === "assistant") {
+        const content = extractTextContent(lastMessage);
+        if (content) {
+          await addChatMessage(chatId, "assistant", content);
+        }
+      }
     }
 
-    setStatus("idle");
-  };
+    saveAssistantMessage();
+  }, [messages, status, chatId]);
+
+  useEffect(() => {
+    async function updateChatWithFirstMessage() {
+      if (!chatId || messages.length !== 1) return;
+      if (messages[0].role !== "user") return;
+
+      const firstUserMessage = extractTextContent(messages[0]);
+      if (firstUserMessage) {
+        const title =
+          firstUserMessage.length > 50
+            ? firstUserMessage.slice(0, 47) + "..."
+            : firstUserMessage;
+        await updateChatTitle(chatId, title);
+      }
+    }
+
+    updateChatWithFirstMessage();
+  }, [chatId, messages]);
+
+  const handleSubmit = useCallback(async () => {
+    const text = input.trim();
+    if (!text || status !== "ready") return;
+
+    setInput("");
+
+    if (chatId) {
+      await addChatMessage(chatId, "user", text);
+    }
+
+    await sendMessage({
+      role: "user",
+      parts: [{ type: "text" as const, text }],
+    });
+  }, [input, status, chatId, sendMessage]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -253,11 +278,10 @@ export default function ChatInterface() {
     }
   };
 
-  const canSubmit = input.trim().length > 0 && status === "idle";
+  const canSubmit = input.trim().length > 0 && status === "ready";
 
   return (
     <div className="flex flex-col h-screen w-full flex-3 bg-white font-sans">
-      {/* messages */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-neutral-400">
@@ -266,56 +290,69 @@ export default function ChatInterface() {
         ) : (
           <div className="max-w-4xl text-[16px] mx-auto py-8 px-4 space-y-6">
             <AnimatePresence initial={false}>
-              {messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18 }}
-                  className={cn(
-                    "flex",
-                    msg.role === "user" ? "justify-end" : "justify-start gap-3",
-                  )}
-                >
-                  {msg.role === "assistant" && (
-                    <LLMLogo className="relative top-2" size={28} />
-                  )}
-
-                  <div
+              {messages.map((msg) => {
+                const text = extractTextContent(msg);
+                return (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.18 }}
                     className={cn(
-                      msg.role === "assistant" && "group flex-1 min-w-0",
+                      "flex",
+                      msg.role === "user"
+                        ? "justify-end"
+                        : "justify-start gap-3",
                     )}
                   >
-                    {msg.role === "user" ? (
-                      <div className="bg-[#f4f4f4] rounded-[18px] px-4 py-2.5 max-w-[80%] leading-relaxed whitespace-pre-wrap">
-                        {msg.content}
-                      </div>
-                    ) : (
-                      <>
-                        {msg.content ? (
-                          <div className="leading-relaxed">
-                            <RenderContent text={msg.content} />
-                          </div>
-                        ) : (
-                          <TypingDots />
-                        )}
-                        <MessageActions />
-                      </>
+                    {msg.role === "assistant" && (
+                      <LLMLogo className="relative top-2" size={28} />
                     )}
-                  </div>
-                </motion.div>
-              ))}
+
+                    <div
+                      className={cn(
+                        msg.role === "assistant" && "group flex-1 min-w-0",
+                      )}
+                    >
+                      {msg.role === "user" ? (
+                        <div className="bg-[#f4f4f4] rounded-[18px] px-4 py-2.5 text-base leading-relaxed whitespace-pre-wrap">
+                          {text}
+                        </div>
+                      ) : (
+                        <>
+                          {text ? (
+                            <div className="leading-relaxed">
+                              <RenderContent text={text} />
+                            </div>
+                          ) : (
+                            <TypingDots />
+                          )}
+                          <MessageActions />
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
 
-            {status === "submitted" && (
+            {(status === "streaming" || status === "submitted") && (
               <motion.div
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start gap-3"
               >
                 <LLMLogo size={28} />
-                <TypingDots />
+                <div className="bg-[#f4f4f4] rounded-[18px] px-4 py-3">
+                  <Loader2 className="size-4 animate-spin text-neutral-400" />
+                </div>
               </motion.div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 text-red-600 rounded-lg px-4 py-3 text-sm">
+                {error.message}
+              </div>
             )}
 
             <div ref={messagesEndRef} />
@@ -323,7 +360,6 @@ export default function ChatInterface() {
         )}
       </div>
 
-      {/* Input */}
       <div className="max-w-4xl text-[16px] w-full mx-auto px-4 pb-5">
         <div className="flex items-end gap-2 border shadow-sm rounded-xl px-4 py-3">
           <Textarea
@@ -348,7 +384,7 @@ export default function ChatInterface() {
             )}
           >
             {status === "submitted" ? (
-              <span className="size-2.5 rounded-sm bg-current" />
+              <Loader2 className="animate-spin size-3" />
             ) : (
               <ArrowRight size={14} />
             )}
