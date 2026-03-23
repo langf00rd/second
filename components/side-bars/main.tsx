@@ -16,11 +16,11 @@ import {
   PanelRight,
   PlusIcon,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
+import { Spinner } from "../ui/spinner";
 
 function LLMLogo({
   size = 28,
@@ -42,11 +42,35 @@ function LLMLogo({
   );
 }
 
+interface SidebarContextType {
+  isCollapsed: boolean;
+  setIsCollapsed: (value: boolean) => void;
+}
+
+const SidebarContext = createContext<SidebarContextType>({
+  isCollapsed: false,
+  setIsCollapsed: () => {},
+});
+
+export function useSidebar() {
+  return useContext(SidebarContext);
+}
+
+export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  return (
+    <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+}
+
 export function MainSidebar() {
   const router = useRouter();
+  const { isCollapsed, setIsCollapsed } = useSidebar();
   const searchParams = useSearchParams();
   const activeChatId = searchParams.get("chat");
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const [user, setUser] = useState<{
     id: string;
@@ -124,13 +148,7 @@ export function MainSidebar() {
 
   if (isCollapsed) {
     return (
-      <motion.div
-        initial={{ opacity: 0, x: -100 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -100 }}
-        transition={{ type: "tween", duration: 0.2 }}
-        className="flex flex-col items-center justify-between h-full w-[60px] border-r bg-[#F9F9F9] py-4"
-      >
+      <div className="h-full w-[60px] border-r bg-[#F9F9F9] flex flex-col items-center justify-between py-4 transition-all duration-300 ease-in-out">
         <div className="flex flex-col items-center gap-4">
           <LLMLogo size={32} />
           <Button variant="ghost" size="icon" onClick={handleNewChat}>
@@ -144,7 +162,6 @@ export function MainSidebar() {
             <PanelLeftClose size={20} />
           </Button>
         </div>
-
         <div className="flex flex-col pb-2 items-center gap-4">
           <Popover>
             <PopoverTrigger className="cursor-pointer">
@@ -167,18 +184,12 @@ export function MainSidebar() {
             </PopoverContent>
           </Popover>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -100 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -100 }}
-      transition={{ type: "tween", duration: 0.2 }}
-      className="flex-[0.8] border-r relative flex flex-col justify-between bg-[#F9F9F9]"
-    >
+    <div className="h-full max-w-[300px] flex-[0.8] border-r bg-[#F9F9F9] flex flex-col justify-between transition-all duration-300 ease-in-out">
       <div>
         <div className="flex items-center px-5 py-3 justify-between">
           <Button variant="outline" onClick={handleNewChat}>
@@ -196,7 +207,9 @@ export function MainSidebar() {
         <div className="p-5 space-y-8">
           <h1 className="text-accent-foreground mb-1">Your chats</h1>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading...</div>
+            <div className="text-sm py-2 text-muted-foreground">
+              <Spinner className="mx-auto" />
+            </div>
           ) : chats.length === 0 ? (
             <p className="text-sm text-muted-foreground">No chats yet</p>
           ) : (
@@ -247,6 +260,6 @@ export function MainSidebar() {
           Go Pro
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }
