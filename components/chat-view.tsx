@@ -285,7 +285,7 @@ export default function ChatView({ chatId }: ChatViewProps) {
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-neutral-400">
-            <span>How can I help you today?</span>
+            <span className="text-xl">How can I help you today?</span>
           </div>
         ) : (
           <div className="max-w-4xl text-[16px] mx-auto py-8 px-4 space-y-6">

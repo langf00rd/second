@@ -51,7 +51,7 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
     const defaultTitle = `Chat ${new Date().toLocaleDateString()}`;
     const newChat = await createChat(user.id, defaultTitle);
     if (newChat) {
-      router.push(`/chat?chat=${newChat.id}`);
+      router.push(`/chat/${newChat.id}`);
     }
   }
 
