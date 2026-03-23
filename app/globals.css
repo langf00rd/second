@@ -132,3 +132,18 @@
 html {
   font-size: 14px;
 }
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+
+  .inset-y-safe {
+    top: env(safe-area-inset-top);
+    bottom: env(safe-area-inset-bottom);
+  }
+}

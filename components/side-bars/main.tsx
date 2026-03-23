@@ -213,9 +213,7 @@ export function MainSidebar() {
         <Popover>
           <PopoverTrigger className="flex items-center gap-5 cursor-pointer">
             <Avatar>
-              <AvatarImage
-                src={user?.user_metadata?.avatar_url || undefined}
-              />
+              <AvatarImage src={user?.user_metadata?.avatar_url || undefined} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col justify-start items-start">
@@ -286,7 +284,7 @@ export function MainSidebar() {
 
   return (
     <>
-      <div className="hidden md:block h-full border-r transition-all duration-300 ease-in-out">
+      <div className="hidden md:block h-full md:border-r transition-all duration-300 ease-in-out">
         {sidebarContent}
       </div>
 

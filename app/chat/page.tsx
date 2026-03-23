@@ -17,9 +17,9 @@ function ChatContent() {
   const activeChatId = searchParams.get("chat");
 
   return (
-    <div className="h-screen w-screen flex">
+    <div className="h-full w-full flex">
       <MainSidebar />
-      <div className="flex-1 transition-all duration-300 ease-in-out">
+      <div className="flex-1 transition-all duration-300 ease-in-out h-full">
         <ChatView chatId={activeChatId} />
       </div>
       <div className="hidden lg:block h-full">
@@ -35,7 +35,9 @@ function MobileLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <AppHeader onToggleSidebar={() => setIsMobileOpen(true)} />
-      <div className="pt-14 md:pt-0">{children}</div>
+      <div className="h-[calc(100vh-3.5rem)] md:h-screen pt-14 md:pt-0">
+        {children}
+      </div>
     </>
   );
 }
@@ -46,7 +48,7 @@ export default function Page() {
       <MobileLayout>
         <Suspense
           fallback={
-            <div className="h-screen w-screen flex items-center justify-center">
+            <div className="h-full w-full flex items-center justify-center">
               <Spinner />
             </div>
           }

@@ -49,7 +49,7 @@ export default function ContextSideBar() {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 100 }}
       transition={{ type: "tween", duration: 0.2 }}
-      className="flex-1 border-l p-5 relative max-w-[400px]"
+      className="flex-1 h-screen border-l p-5 relative max-w-[400px]"
     >
       <div className="space-y-3">
         <Avatar>
