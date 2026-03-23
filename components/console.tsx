@@ -24,7 +24,7 @@ export default function Console(props: { className?: string }) {
     }
   }, [isOpen]);
 
-  if (statusTrail.length < 1) return null;
+  // if (statusTrail.length < 1) return null;
 
   return (
     <div
@@ -49,10 +49,10 @@ export default function Console(props: { className?: string }) {
         {isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "5rem", opacity: 1 }}
+            animate={{ height: "80px", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="overflow-hidden border-t bg-neutral-100"
+            // className="overflow-hidden border-t h-20 bg-neutral-100"
           >
             <div className="absolute inset-x-0 top-0 h-8 bg-linear-to-b from-neutral-100 to-transparent pointer-events-none z-10" />
             <div

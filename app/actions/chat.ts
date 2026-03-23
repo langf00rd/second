@@ -1,8 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import type { Competitor } from "@/lib/services/llm/openrouter";
 import type { WebsiteMetadata } from "@/lib/types";
+import { cookies } from "next/headers";
 
 export type WebsiteSummaryData = {
   goal: string;
@@ -20,7 +20,7 @@ export type WebsiteContextData = {
 
 export async function setWebsiteSummaryCookie(
   summary: WebsiteSummaryData,
-  context?: WebsiteContextData
+  context?: WebsiteContextData,
 ) {
   const cookieStore = await cookies();
 

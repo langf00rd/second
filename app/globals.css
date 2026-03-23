@@ -50,7 +50,7 @@
 
 :root {
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: #0d0d0d;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -64,7 +64,7 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: #707070;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
+  --border: #f1f1f1;
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
@@ -126,5 +126,24 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+html {
+  font-size: 14px;
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+
+  .inset-y-safe {
+    top: env(safe-area-inset-top);
+    bottom: env(safe-area-inset-bottom);
   }
 }

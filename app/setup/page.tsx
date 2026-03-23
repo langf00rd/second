@@ -1,12 +1,20 @@
 "use client";
 
 import { setWebsiteSummaryCookie } from "@/app/actions/chat";
+import {
+  createOrganizationWithScrapedData,
+  updateOrganization,
+} from "@/app/actions/user";
 import { useApp } from "@/components/app-provider";
 import ErrorBanner from "@/components/error-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { Json } from "@/lib/supabase/types";
 import { ROUTES } from "@/lib/constants/routes";
+import { getCurrentUser } from "@/lib/auth";
+import type { WebsiteMetadata } from "@/lib/types";
+import type { Competitor } from "@/lib/services/llm/openrouter";
 import { fetchWebsiteMetadata } from "@/lib/services/metadata";
 import { scrapeWebsite } from "@/lib/services/scraper";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -94,6 +102,21 @@ export default function Page() {
     clearTrail();
 
     try {
+      const user = await getCurrentUser();
+      if (!user) {
+        toast.error("Please sign in first");
+        router.push(ROUTES.signIn);
+        return;
+      }
+
+      let orgId: string = "";
+      let content = "";
+      let metadata: WebsiteMetadata | null = null;
+      let llmSummary: { goal: string; full: string; industry: string; competitor_keywords?: string[] } | null = null;
+      let competitors: { websites: Array<{ url: string; content: string }>; competitor_context?: string } | null = null;
+      let extractedCompetitors: Competitor[] = [];
+
+      // Step 1: Scrape website
       addStatus("scraping");
       const [scrapeResult, metadataResult] = await Promise.all([
         scrapeQuery.refetch(),
@@ -105,39 +128,71 @@ export default function Page() {
         return;
       }
 
-      addStatus("extracting_metadata");
-      const content = scrapeResult.data?.data || "";
-      const metadata = metadataResult.data?.data || null;
+      content = scrapeResult.data?.data || "";
+      metadata = metadataResult.data?.data || null;
 
+      // Create organization with initial data
+      const initialOrg = await createOrganizationWithScrapedData(
+        user.id,
+        {
+          metadata,
+          llmSummary: null,
+          competitors: [],
+          competitorsContext: null,
+        },
+        url,
+        metadata?.title || null,
+        [],
+      );
+
+      if (!initialOrg) {
+        toast.error("Failed to create organization");
+        addStatus("error");
+        return;
+      }
+
+      orgId = initialOrg.id;
+
+      // Step 2: Generate summary
       addStatus("generating_summary");
-      const llmSummary = await summarizeMutation.mutateAsync({ content });
+      llmSummary = await summarizeMutation.mutateAsync({ content });
 
-      addStatus("fetching_competitors");
-      const competitors = await competitorsMutation.mutateAsync({
-        industry: llmSummary.industry,
+      // Update org with summary
+      await updateOrganization(orgId, {
+        llm_summary: llmSummary as unknown as Json,
       });
 
+      // Step 3: Fetch competitors
+      addStatus("fetching_competitors");
+      competitors = await competitorsMutation.mutateAsync({
+        industry: llmSummary!.industry,
+      });
+
+      // Step 4: Extract competitors
       addStatus("extracting_competitors");
-      const extractedCompetitors = await extractCompetitorsMutation.mutateAsync(
-        {
-          websites: competitors.websites,
-        },
-      );
+      extractedCompetitors = await extractCompetitorsMutation.mutateAsync({
+        websites: competitors!.websites,
+      });
+
+      // Update org with competitors
+      await updateOrganization(orgId, {
+        competitors: extractedCompetitors as unknown as Json,
+      });
 
       setScrapedWebsiteData({
         metadata,
         data: content,
         llmSummary,
-        competitorsContext: competitors.competitor_context,
+        competitorsContext: competitors!.competitor_context || null,
         competitors: extractedCompetitors,
       });
 
       await setWebsiteSummaryCookie(
         {
-          goal: llmSummary.goal,
-          full: llmSummary.full,
-          industry: llmSummary.industry,
-          competitorKeywords: llmSummary.competitor_keywords,
+          goal: llmSummary!.goal,
+          full: llmSummary!.full,
+          industry: llmSummary!.industry,
+          competitorKeywords: llmSummary!.competitor_keywords,
         },
         {
           metadata,

@@ -9,18 +9,18 @@ import {
 } from "@/components/side-bars/main";
 import { AppHeader } from "@/components/app-header";
 import { Spinner } from "@/components/ui/spinner";
-import { useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 
 function ChatContent() {
-  const searchParams = useSearchParams();
-  const activeChatId = searchParams.get("chat");
+  const pathname = usePathname();
+  const chatId = pathname.startsWith("/chat/") ? pathname.split("/")[2] : undefined;
 
   return (
     <div className="h-full w-full flex">
       <MainSidebar />
       <div className="flex-1 transition-all duration-300 ease-in-out h-full">
-        <ChatView chatId={activeChatId} />
+        <ChatView chatId={chatId} />
       </div>
       <div className="hidden lg:block h-full">
         <ContextSideBar />
@@ -42,7 +42,7 @@ function MobileLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function Page() {
+export default function ChatLayout() {
   return (
     <SidebarProvider>
       <MobileLayout>
