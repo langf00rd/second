@@ -25,7 +25,15 @@ export default function ContextSideBar() {
 
       const orgs = await getUserOrganizations(user.id);
       if (orgs && orgs.length > 0) {
-        setOrg(orgs[0]);
+        setOrg(
+          orgs[0] as {
+            name: string | null;
+            website: string | null;
+            metadata: Record<string, unknown> | null;
+            llm_summary: Record<string, unknown> | null;
+            competitors: Array<{ name: string; url: string }> | null;
+          },
+        );
       }
     }
     fetchOrg();

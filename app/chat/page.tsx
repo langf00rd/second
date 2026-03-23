@@ -2,17 +2,18 @@
 
 import { setWebsiteSummaryCookie } from "@/app/actions/chat";
 import { useApp } from "@/components/app-provider";
+import ChatInterface from "@/components/chat-view";
 import ContextSideBar from "@/components/side-bars/context";
 import { MainSidebar } from "@/components/side-bars/main";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  addChatMessage,
+  getChatMessages,
+  updateChatTitle,
+} from "@/lib/supabase/db";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
-import { Loader2, Send } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import Balancer from "react-wrap-balancer";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 function extractTextContent(message: UIMessage): string {
   if (!message.parts || !Array.isArray(message.parts)) {
@@ -24,14 +25,17 @@ function extractTextContent(message: UIMessage): string {
     .join("");
 }
 
-export default function Page() {
+function ChatContent() {
   const { scrapedWebsiteData } = useApp();
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastLoadedChatRef = useRef<string | null>(null);
+  const searchParams = useSearchParams();
+  const activeChatId = searchParams.get("chat");
 
   const websiteSummary = scrapedWebsiteData.llmSummary;
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
@@ -42,6 +46,29 @@ export default function Page() {
       setWebsiteSummaryCookie(websiteSummary);
     }
   }, [websiteSummary]);
+
+  useEffect(() => {
+    async function loadChat() {
+      if (!activeChatId) return;
+      if (lastLoadedChatRef.current === activeChatId) return;
+
+      lastLoadedChatRef.current = activeChatId;
+
+      const chatMessages = await getChatMessages(activeChatId);
+
+      if (chatMessages.length > 0) {
+        const loadedMessages: UIMessage[] = chatMessages.map((msg) => ({
+          id: msg.id,
+          role: msg.role as "user" | "assistant" | "system",
+          parts: [{ type: "text" as const, text: msg.content }],
+          createdAt: new Date(msg.created_at),
+        }));
+        setMessages(loadedMessages);
+      }
+    }
+
+    loadChat();
+  }, [activeChatId, setMessages]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,19 +86,59 @@ export default function Page() {
 
       setInputValue("");
 
+      if (activeChatId) {
+        await addChatMessage(activeChatId, "user", text);
+      }
+
       await sendMessage({
         role: "user",
         parts: [{ type: "text" as const, text }],
       });
     },
-    [inputValue, sendMessage],
+    [inputValue, sendMessage, activeChatId],
   );
+
+  useEffect(() => {
+    async function saveAssistantMessage() {
+      if (!activeChatId || status !== "ready") return;
+
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.role === "assistant") {
+        const content = extractTextContent(lastMessage);
+        if (content) {
+          await addChatMessage(activeChatId, "assistant", content);
+        }
+      }
+    }
+
+    saveAssistantMessage();
+  }, [messages, status, activeChatId]);
+
+  useEffect(() => {
+    async function updateChatWithFirstMessage() {
+      if (!activeChatId || messages.length !== 1) return;
+      if (messages[0].role !== "user") return;
+
+      const firstUserMessage = extractTextContent(messages[0]);
+      if (firstUserMessage) {
+        const title =
+          firstUserMessage.length > 50
+            ? firstUserMessage.slice(0, 47) + "..."
+            : firstUserMessage;
+        await updateChatTitle(activeChatId, title);
+      }
+    }
+
+    updateChatWithFirstMessage();
+  }, [activeChatId, messages]);
 
   return (
     <div className="h-screen w-screen flex text-start justify-between">
       <MainSidebar />
 
-      <div className="flex flex-col relative flex-3">
+      <ChatInterface />
+
+      {/*<div className="flex flex-col relative flex-3">
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-2xl mx-auto space-y-6">
             {messages.length === 0 && (
@@ -176,9 +243,23 @@ export default function Page() {
             )}
           </Button>
         </form>
-      </div>
+      </div>*/}
 
       <ContextSideBar />
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen w-screen flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <ChatContent />
+    </Suspense>
   );
 }

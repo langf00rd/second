@@ -7,12 +7,16 @@ import type {
   User,
   Organization,
   Json,
+  Chat,
+  ChatMessage,
+  InsertChat,
+  InsertChatMessage,
 } from "./types";
 import type { WebsiteMetadata } from "@/lib/types";
 import type { Competitor } from "@/lib/services/llm/openrouter";
 import type { Question } from "@/lib/types";
 
-export type { User, Organization, Json };
+export type { User, Organization, Chat, ChatMessage, Json };
 
 export async function createUser(data: InsertUser): Promise<User | null> {
   const supabase = createSupabaseClient();
@@ -197,4 +201,123 @@ export async function saveScrapedData(
     competitors: scrapedData.competitors as unknown as Json,
     questions: questions as unknown as Json,
   });
+}
+
+export async function createChat(
+  userId: string,
+  title: string,
+): Promise<Chat | null> {
+  const supabase = createSupabaseClient();
+  const { data: chat, error } = await supabase
+    .from("chats")
+    .insert({ user_id: userId, title } as InsertChat)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating chat:", error);
+    return null;
+  }
+
+  return chat;
+}
+
+export async function getUserChats(userId: string): Promise<Chat[]> {
+  const supabase = createSupabaseClient();
+  const { data: chats, error } = await supabase
+    .from("chats")
+    .select("*")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching user chats:", error);
+    return [];
+  }
+
+  return chats || [];
+}
+
+export async function getChat(chatId: string): Promise<Chat | null> {
+  const supabase = createSupabaseClient();
+  const { data: chat, error } = await supabase
+    .from("chats")
+    .select("*")
+    .eq("id", chatId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching chat:", error);
+    return null;
+  }
+
+  return chat;
+}
+
+export async function updateChatTitle(
+  chatId: string,
+  title: string,
+): Promise<Chat | null> {
+  const supabase = createSupabaseClient();
+  const { data: chat, error } = await supabase
+    .from("chats")
+    .update({ title })
+    .eq("id", chatId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating chat title:", error);
+    return null;
+  }
+
+  return chat;
+}
+
+export async function deleteChat(chatId: string): Promise<boolean> {
+  const supabase = createSupabaseClient();
+  const { error } = await supabase.from("chats").delete().eq("id", chatId);
+
+  if (error) {
+    console.error("Error deleting chat:", error);
+    return false;
+  }
+
+  return true;
+}
+
+export async function addChatMessage(
+  chatId: string,
+  role: "user" | "assistant" | "system",
+  content: string,
+): Promise<ChatMessage | null> {
+  const supabase = createSupabaseClient();
+  const { data: message, error } = await supabase
+    .from("chat_messages")
+    .insert({ chat_id: chatId, role, content } as InsertChatMessage)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error adding chat message:", error);
+    return null;
+  }
+
+  return message;
+}
+
+export async function getChatMessages(chatId: string): Promise<ChatMessage[]> {
+  const supabase = createSupabaseClient();
+  const { data: messages, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("chat_id", chatId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching chat messages:", error);
+    return [];
+  }
+
+  return messages || [];
 }
