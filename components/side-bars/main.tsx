@@ -8,17 +8,45 @@ import {
 import { getCurrentUser, signOut } from "@/lib/auth";
 import type { Chat } from "@/lib/supabase/db";
 import { createChat, getUserChats } from "@/lib/supabase/db";
-import { Gift, LogOut, PlusIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Gift,
+  LogOut,
+  PanelLeftClose,
+  PanelRight,
+  PlusIcon,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 
+function LLMLogo({
+  size = 28,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-full bg-black text-white flex items-center justify-center shrink-0",
+        className,
+      )}
+      style={{ width: size, height: size }}
+    >
+      /
+    </div>
+  );
+}
+
 export function MainSidebar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeChatId = searchParams.get("chat");
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const [user, setUser] = useState<{
     id: string;
@@ -36,7 +64,18 @@ export function MainSidebar() {
   useEffect(() => {
     async function init() {
       const currentUser = await getCurrentUser();
-      setUser(currentUser as typeof user);
+      setUser(
+        currentUser as {
+          id: string;
+          email?: string;
+          user_metadata: {
+            name?: string;
+            avatar_url?: string;
+            given_name?: string;
+            family_name?: string;
+          };
+        },
+      );
 
       if (currentUser) {
         const userChats = await getUserChats(currentUser.id);
@@ -46,8 +85,6 @@ export function MainSidebar() {
     }
     init();
   }, []);
-
-  console.log("user?.user_metadata", user?.user_metadata);
 
   const displayName =
     user?.user_metadata?.name ||
@@ -85,6 +122,55 @@ export function MainSidebar() {
     router.push(`/chat?chat=${chatId}`);
   }
 
+  if (isCollapsed) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: -100 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -100 }}
+        transition={{ type: "tween", duration: 0.2 }}
+        className="flex flex-col items-center justify-between h-full w-[60px] border-r bg-[#F9F9F9] py-4"
+      >
+        <div className="flex flex-col items-center gap-4">
+          <LLMLogo size={32} />
+          <Button variant="ghost" size="icon" onClick={handleNewChat}>
+            <PlusIcon size={20} />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setIsCollapsed(false)}
+          >
+            <PanelLeftClose size={20} />
+          </Button>
+        </div>
+
+        <div className="flex flex-col pb-2 items-center gap-4">
+          <Popover>
+            <PopoverTrigger className="cursor-pointer">
+              <Avatar>
+                <AvatarImage
+                  src={user?.user_metadata?.avatar_url || undefined}
+                />
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-56">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2"
+                onClick={handleLogout}
+              >
+                <LogOut size={16} />
+                Log out
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -100 }}
@@ -94,17 +180,20 @@ export function MainSidebar() {
       className="flex-[0.8] border-r relative flex flex-col justify-between bg-[#F9F9F9]"
     >
       <div>
-        {/*<div className="flex items-center px-5 py-3 justify-between">
+        <div className="flex items-center px-5 py-3 justify-between">
           <Button variant="outline" onClick={handleNewChat}>
             <PlusIcon className="opacity-50" />
             New chat
           </Button>
-        </div>*/}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCollapsed(true)}
+          >
+            <PanelRight size={20} />
+          </Button>
+        </div>
         <div className="p-5 space-y-8">
-          <Button variant="outline" onClick={handleNewChat}>
-            <PlusIcon className="opacity-50" />
-            New chat
-          </Button>
           <h1 className="text-accent-foreground mb-1">Your chats</h1>
           {isLoading ? (
             <div className="text-sm text-muted-foreground">Loading...</div>
