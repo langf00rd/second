@@ -189,7 +189,7 @@ export function MainSidebar() {
   }
 
   return (
-    <div className="h-full max-w-[300px] flex-[0.8] border-r bg-[#F9F9F9] flex flex-col justify-between transition-all duration-300 ease-in-out">
+    <div className="h-full w-[300px] border-r bg-[#F9F9F9] flex flex-col justify-between transition-all duration-300 ease-in-out">
       <div>
         <div className="flex items-center px-5 py-3 justify-between">
           <Button variant="outline" onClick={handleNewChat}>
