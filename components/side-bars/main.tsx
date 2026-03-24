@@ -237,13 +237,15 @@ export function MainSidebar() {
       key={chat.id}
       onClick={() => handleChatClick(chat.id)}
       className={cn(
-        "group flex items-center gap-2 p-2 cursor-pointer hover:text-primary transition-colors rounded-lg",
+        "group flex items-center gap-2 p-2 py-1 cursor-pointer hover:text-primary transition-colors rounded-lg",
         activeChatId === chat.id
-          ? "bg-neutral-200/40 font-medium text-foreground"
+          ? "bg-neutral-200/40 text-foreground"
           : "text-neutral-600",
       )}
     >
-      <p className="flex-1 text-ellipsis line-clamp-1">{chat.title}</p>
+      <p className="flex-1 text-ellipsis text-[14px] line-clamp-1">
+        {chat.title}
+      </p>
       <DropdownMenu>
         <DropdownMenuTrigger
           className="opacity-0 group-hover:opacity-100 p-1 hover:bg-neutral-200 rounded transition-opacity"
@@ -306,7 +308,7 @@ export function MainSidebar() {
               No chats yet
             </p>
           ) : (
-            <ul className="space-y-1">
+            <ul>
               {chats.map((chat) => (
                 <ChatListItem key={chat.id} chat={chat} />
               ))}

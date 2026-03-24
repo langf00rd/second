@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import Balancer from "react-wrap-balancer";
 import { toast } from "sonner";
 
 export default function Page() {
@@ -21,11 +22,15 @@ export default function Page() {
   };
 
   return (
-    <div className="flex items-center h-screen px-5 flex-col gap-4 justify-center">
-      <h1 className="text-xl font-semibold">Get started with Second</h1>
-      <p className="text-muted-foreground text-center max-w-sm">
-        Analyze your website, get insights, and grow your business with AI-powered
-        advice.
+    <div className="flex items-center h-screen px-5 flex-col gap-3 justify-center">
+      <h1 className="md:text-2xl text-xl font-medium">
+        Get started with Second
+      </h1>
+      <p className="text-muted-foreground mb-3 text-center max-w-sm">
+        <Balancer>
+          Analyze your website, get insights, and grow your business with
+          AI-powered advice.
+        </Balancer>
       </p>
       <Button onClick={handleSignIn} disabled={isLoading} size="lg">
         {isLoading ? (

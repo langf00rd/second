@@ -129,9 +129,9 @@
   }
 }
 
-html {
+/*html {
   font-size: 14px;
-}
+}*/
 
 @layer utilities {
   .pb-safe {

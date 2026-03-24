@@ -361,7 +361,7 @@ export default function ChatView({ chatId }: ChatViewProps) {
       </div>
 
       <div className="max-w-4xl text-[16px] w-full mx-auto px-4 md:pb-5 -mb-10 md:-mb-0 shrink-0">
-        <div className="flex items-end gap-2 border shadow-sm rounded-xl px-4 py-3">
+        <div className="flex items-end gap-2 ring-1 ring-foreground/10 shadow-[0_0.25rem_1.25rem_hsl(0_0%_0%/3.5%),0_0_0_0.5px_hsla(30_3.3%_11.8%/15%)] rounded-[30px] px-4 py-3">
           <Textarea
             ref={textareaRef}
             value={input}
@@ -370,7 +370,10 @@ export default function ChatView({ chatId }: ChatViewProps) {
             placeholder="Ask anything"
             rows={1}
             disabled={status === "submitted"}
-            className="flex-1 placeholder:text-base relative -top-1 border-0 resize-none bg-transparent shadow-none p-0 leading-relaxed focus-visible:ring-0 min-h-0 max-h-[200px] placeholder:text-neutral-400"
+            style={{
+              fontSize: "15px",
+            }}
+            className="flex-1 disabled:bg-transparent border-0 placeholder:text-[15px] relative -top-[2px] resize-none bg-transparent shadow-none p-0 leading-relaxed focus-visible:ring-0 min-h-0 max-h-[200px] placeholder:text-neutral-400"
           />
           <Button
             onClick={handleSubmit}
