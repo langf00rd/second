@@ -7,7 +7,6 @@ import Balancer from "react-wrap-balancer";
 
 export default function Home() {
   return (
-          </Button>
     <div className="container max-w-325 mx-auto px-5">
       <header className="h-17.5">
         <div className="flex items-center h-full justify-between">
