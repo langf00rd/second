@@ -268,7 +268,7 @@ export function MainSidebar() {
   );
 
   const sidebarContent = (
-    <div className="h-full w-[300px] bg-[#F9F9F9] flex flex-col">
+    <div className="h-full w-[260px] bg-[#F9F9F9] flex flex-col">
       <div className="flex items-center px-5 py-3 justify-between shrink-0">
         <Button variant="outline" onClick={handleNewChat}>
           <PlusIcon className="opacity-50" />
@@ -293,14 +293,18 @@ export function MainSidebar() {
       </div>
 
       <div className="flex-1 overflow-hidden flex flex-col px-5">
-        <h1 className="text-accent-foreground mb-2 shrink-0">Your chats</h1>
+        <h1 className="text-accent-foreground mb-2 shrink-0 mt-5">
+          Your chats
+        </h1>
         <div className="flex-1 overflow-y-auto">
           {isLoadingChats ? (
             <div className="text-sm py-2 text-muted-foreground">
               <Spinner className="mx-auto" />
             </div>
           ) : chats.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No chats yet</p>
+            <p className="text-sm text-muted-foreground text-center py-10">
+              No chats yet
+            </p>
           ) : (
             <ul className="space-y-1">
               {chats.map((chat) => (
