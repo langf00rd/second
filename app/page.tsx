@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/constants/routes";
-import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Balancer } from "react-wrap-balancer";
 
@@ -19,9 +18,7 @@ export default function Home() {
         </p>
         <Link href={ROUTES.chat}>
           <Button size="lg" className="scale-110">
-            <PlusIcon className="opacity-50" />
             Get Started
-            <PlusIcon className="opacity-50" />
           </Button>
         </Link>
       </div>

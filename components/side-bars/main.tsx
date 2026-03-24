@@ -1,20 +1,36 @@
 "use client";
 
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { getCurrentUser, signOut } from "@/lib/auth";
 import type { Chat } from "@/lib/supabase/db";
-import { createChat, getUserChats } from "@/lib/supabase/db";
+import { createChat, deleteChat, getUserChats } from "@/lib/supabase/db";
 import { cn } from "@/lib/utils";
 import {
   Gift,
   LogOut,
+  MoreHorizontal,
   PanelLeftClose,
   PanelRight,
   PlusIcon,
+  Trash2,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -153,6 +169,8 @@ export function MainSidebar() {
     isLoadingChats,
   } = useSidebar();
 
+  const [deleteDialogChat, setDeleteDialogChat] = useState<Chat | null>(null);
+
   const activeChatId = pathname.startsWith("/chat/")
     ? pathname.split("/")[2]
     : undefined;
@@ -195,6 +213,60 @@ export function MainSidebar() {
     router.push(`/chat/${chatId}`);
   }
 
+  async function handleDeleteChat() {
+    if (!deleteDialogChat) return;
+
+    const success = await deleteChat(deleteDialogChat.id);
+    if (success) {
+      setChats((prev) => prev.filter((c) => c.id !== deleteDialogChat.id));
+      if (activeChatId === deleteDialogChat.id) {
+        router.push("/chat");
+      }
+    }
+    setDeleteDialogChat(null);
+  }
+
+  function handleOpenDeleteDialog(chat: Chat, e: React.MouseEvent) {
+    e.stopPropagation();
+    setDeleteDialogChat(chat);
+  }
+
+  const ChatListItem = ({ chat }: { chat: Chat }) => (
+    <li
+      role="button"
+      key={chat.id}
+      onClick={() => handleChatClick(chat.id)}
+      className={cn(
+        "group flex items-center gap-2 p-2 cursor-pointer hover:text-primary transition-colors rounded-lg",
+        activeChatId === chat.id
+          ? "bg-neutral-200/40 font-medium text-foreground"
+          : "text-neutral-600",
+      )}
+    >
+      <p className="flex-1 text-ellipsis line-clamp-1">{chat.title}</p>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-neutral-200 rounded transition-opacity"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          <MoreHorizontal size={16} />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem
+            className="text-destructive flex cursor-pointer"
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              handleOpenDeleteDialog(chat, e);
+            }}
+          >
+            <Trash2 size={16} className="mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </li>
+  );
+
   const sidebarContent = (
     <div className="h-full w-[300px] bg-[#F9F9F9] flex flex-col">
       <div className="flex items-center px-5 py-3 justify-between shrink-0">
@@ -232,18 +304,7 @@ export function MainSidebar() {
           ) : (
             <ul className="space-y-1">
               {chats.map((chat) => (
-                <li
-                  role="button"
-                  key={chat.id}
-                  onClick={() => handleChatClick(chat.id)}
-                  className={`p-2 cursor-pointer hover:text-primary transition-colors rounded-lg ${
-                    activeChatId === chat.id
-                      ? "bg-neutral-200/40 font-medium text-foreground"
-                      : "text-neutral-600"
-                  }`}
-                >
-                  <p className="text-ellipsis line-clamp-1">{chat.title}</p>
-                </li>
+                <ChatListItem key={chat.id} chat={chat} />
               ))}
             </ul>
           )}
@@ -340,6 +401,29 @@ export function MainSidebar() {
           </div>
         </div>
       )}
+
+      <Dialog
+        open={!!deleteDialogChat}
+        onOpenChange={(open: boolean) => !open && setDeleteDialogChat(null)}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete chat</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{deleteDialogChat?.title}
+              &quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogChat(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteChat}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
