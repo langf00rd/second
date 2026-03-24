@@ -26,6 +26,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ChatViewProps {
   chatId?: string | null;
+  chatTitle?: string;
 }
 
 function extractTextContent(message: UIMessage): string {
