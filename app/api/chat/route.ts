@@ -1,5 +1,6 @@
+import { MODEL } from "@/lib/constants";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { streamText, type UIMessage, type TextUIPart, isTextUIPart } from "ai";
+import { isTextUIPart, streamText, type TextUIPart, type UIMessage } from "ai";
 import { readFileSync } from "fs";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -57,9 +58,10 @@ Be specific. Give one key action, not ten.`;
     const messages = uiMessages.map(convertUIMessageToModelMessage);
 
     const result = streamText({
-      model: openrouter("anthropic/claude-3-5-sonnet"),
+      model: openrouter(MODEL),
       system: systemPrompt,
       messages,
+      maxOutputTokens: 7000,
     });
 
     return result.toUIMessageStreamResponse();
