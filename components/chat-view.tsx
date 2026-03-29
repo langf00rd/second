@@ -21,6 +21,8 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -84,96 +86,89 @@ const MessageActions = () => (
   </div>
 );
 
-function InlineFormat({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith("**") && part.endsWith("**"))
-          return (
-            <strong key={i} className="font-semibold">
-              {part.slice(2, -2)}
-            </strong>
-          );
-        if (part.startsWith("`") && part.endsWith("`"))
-          return (
-            <code
-              key={i}
-              className="bg-neutral-100 rounded px-1 py-0.5 text-[0.85em] font-mono"
-            >
-              {part.slice(1, -1)}
-            </code>
-          );
-        return <span key={i}>{part}</span>;
-      })}
-    </>
-  );
-}
-
 function RenderContent({ text }: { text: string }) {
-  const lines = text.split("\n");
-  const elements: ReactNode[] = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    const headingMatch = line.match(/^(#{1,3})\s+(.+)/);
-    if (headingMatch) {
-      const level = headingMatch[1].length;
-      const cls =
-        level === 1
-          ? "text-lg font-semibold mt-4 mb-1"
-          : level === 2
-            ? "text-base font-semibold mt-4 mb-1"
-            : "text-sm font-semibold mt-3 mb-1";
-      elements.push(
-        <p key={i} className={cls}>
-          {headingMatch[2]}
-        </p>,
-      );
-      i++;
-      continue;
-    }
-
-    if (line.match(/^[-•]\s/)) {
-      const items: string[] = [];
-      while (i < lines.length && lines[i].match(/^[-•]\s/)) {
-        items.push(lines[i].replace(/^[-•]\s/, ""));
-        i++;
-      }
-      elements.push(
-        <ul key={`ul-${i}`} className="list-disc pl-5 my-1.5 space-y-1">
-          {items.map((item, j) => (
-            <li key={j} className="leading-relaxed">
-              <InlineFormat text={item} />
-            </li>
-          ))}
-        </ul>,
-      );
-      continue;
-    }
-
-    if (line.match(/^---+$/)) {
-      elements.push(<hr key={i} className="border-neutral-200 my-4" />);
-      i++;
-      continue;
-    }
-
-    if (line.trim() === "") {
-      i++;
-      continue;
-    }
-
-    elements.push(
-      <p key={i} className="leading-relaxed my-1">
-        <InlineFormat text={line} />
-      </p>,
-    );
-    i++;
-  }
-
-  return <>{elements}</>;
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => (
+          <p className="my-2 text-[15px] leading-7 text-neutral-800">{children}</p>
+        ),
+        h1: ({ children }) => (
+          <h1 className="text-2xl font-bold mt-6 mb-3 text-neutral-900">{children}</h1>
+        ),
+        h2: ({ children }) => (
+          <h2 className="text-xl font-semibold mt-5 mb-2 text-neutral-900">{children}</h2>
+        ),
+        h3: ({ children }) => (
+          <h3 className="text-base font-semibold mt-4 mb-1.5 text-neutral-900">{children}</h3>
+        ),
+        h4: ({ children }) => (
+          <h4 className="text-sm font-semibold mt-3 mb-1 text-neutral-900">{children}</h4>
+        ),
+        ul: ({ children }) => (
+          <ul className="list-disc pl-5 my-2 space-y-1.5">{children}</ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="list-decimal pl-5 my-2 space-y-1.5">{children}</ol>
+        ),
+        li: ({ children }) => (
+          <li className="text-[15px] leading-7 text-neutral-800">{children}</li>
+        ),
+        blockquote: ({ children }) => (
+          <blockquote className="border-l-4 border-neutral-300 pl-4 py-1 my-3 text-[15px] leading-7 text-neutral-600 italic bg-neutral-50 rounded-r-md">
+            {children}
+          </blockquote>
+        ),
+        code: ({ className, children }) => {
+          const isInline = !className;
+          if (isInline) {
+            return (
+              <code className="bg-neutral-100 text-neutral-800 rounded px-1.5 py-0.5 text-[13px] font-mono">
+                {children}
+              </code>
+            );
+          }
+          return (
+            <pre className="bg-neutral-900 text-neutral-100 rounded-lg p-4 my-3 text-[13px] font-mono overflow-x-auto leading-relaxed">
+              <code>{children}</code>
+            </pre>
+          );
+        },
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            className="text-blue-600 hover:text-blue-700 underline underline-offset-2"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {children}
+          </a>
+        ),
+        hr: () => <hr className="border-neutral-200 my-5" />,
+        strong: ({ children }) => (
+          <strong className="font-semibold text-neutral-900">{children}</strong>
+        ),
+        em: ({ children }) => <em className="italic">{children}</em>,
+        table: ({ children }) => (
+          <div className="overflow-x-auto my-3">
+            <table className="min-w-full text-sm border-collapse border border-neutral-200 rounded-lg overflow-hidden">
+              {children}
+            </table>
+          </div>
+        ),
+        thead: ({ children }) => <thead className="bg-neutral-50">{children}</thead>,
+        th: ({ children }) => (
+          <th className="border border-neutral-200 px-3 py-2 text-left font-semibold text-neutral-900">{children}</th>
+        ),
+        td: ({ children }) => (
+          <td className="border border-neutral-200 px-3 py-2 text-neutral-700">{children}</td>
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
 }
 
 export default function ChatView({ chatId }: ChatViewProps) {

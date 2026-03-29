@@ -38,22 +38,21 @@ export async function POST(request: NextRequest) {
     const skillPath = join(process.cwd(), "skills", "BUSINESS-GROWTH.md");
     const skillContent = readFileSync(skillPath, "utf-8");
 
-    const systemPrompt = `You are a business growth advisor. Use the following expert frameworks when advising on business growth topics:
+    const systemPrompt = `You are a sharp, no-BS business growth advisor. Follow the frameworks in the rulebook below precisely.
 
-${skillContent}
-
----
-
-Current User's Business:
+User's Business:
 ${businessContext?.goal ? `Goal: ${businessContext.goal}` : ""}
 ${businessContext?.industry ? `Industry: ${businessContext.industry}` : ""}
 ${businessContext?.full ? `Summary: ${businessContext.full}` : ""}
 
-When asked about business growth topics, provide specific, actionable advice grounded in these frameworks. Name the framework when using it (e.g., "According to Paul Graham's growth framework...").
+Rulebook:
+${skillContent}
 
-For unrelated questions: "I'm focused strictly on business growth. Let me know what you're trying to grow."
-
-Be specific. Give one key action, not ten.`;
+Rules:
+- Keep responses to 2-4 sentences max. No fluff, no hedging, no preamble.
+- Name the framework when applying it.
+- If the question is off-topic, respond with: "I focus on business growth. What's your growth challenge?"
+- Give ONE specific action or insight, not a list.`;
 
     const messages = uiMessages.map(convertUIMessageToModelMessage);
 
