@@ -9,7 +9,7 @@ import {
 } from "@/lib/supabase/db";
 import { cn } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
+import { DefaultChatTransport, isReasoningUIPart, isTextUIPart, type UIMessage } from "ai";
 import {
   ArrowRight,
   Copy,
@@ -17,8 +17,10 @@ import {
   MoreHorizontal,
   RotateCcw,
   Share,
+  Square,
   ThumbsDown,
   ThumbsUp,
+  Brain,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import ReactMarkdown from "react-markdown";
@@ -39,6 +41,23 @@ function extractTextContent(message: UIMessage): string {
     .filter((part) => isTextUIPart(part))
     .map((part) => part.text)
     .join("");
+}
+
+function extractReasoningContent(message: UIMessage): string {
+  if (!message.parts || !Array.isArray(message.parts)) {
+    return "";
+  }
+  return message.parts
+    .filter((part) => isReasoningUIPart(part))
+    .map((part) => part.text)
+    .join("");
+}
+
+function hasReasoning(message: UIMessage): boolean {
+  if (!message.parts || !Array.isArray(message.parts)) {
+    return false;
+  }
+  return message.parts.some((part) => isReasoningUIPart(part));
 }
 
 const LLMLogo = ({
@@ -176,8 +195,9 @@ export default function ChatView({ chatId }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastLoadedChatRef = useRef<string | null>(null);
+  const [visibleReasoning, setVisibleReasoning] = useState<Set<string>>(new Set());
 
-  const { messages, sendMessage, status, error, setMessages } = useChat({
+  const { messages, sendMessage, status, error, setMessages, stop } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
@@ -274,7 +294,20 @@ export default function ChatView({ chatId }: ChatViewProps) {
     }
   };
 
+  function toggleReasoning(msgId: string) {
+    setVisibleReasoning((prev) => {
+      const next = new Set(prev);
+      if (next.has(msgId)) {
+        next.delete(msgId);
+      } else {
+        next.add(msgId);
+      }
+      return next;
+    });
+  }
+
   const canSubmit = input.trim().length > 0 && status === "ready";
+  const isStreaming = status === "streaming" || status === "submitted";
 
   return (
     <div className="flex flex-col h-full w-full bg-white font-sans">
@@ -286,8 +319,28 @@ export default function ChatView({ chatId }: ChatViewProps) {
         ) : (
           <div className="max-w-4xl text-[16px] mx-auto py-8 px-4 space-y-6">
             <AnimatePresence initial={false}>
-              {messages.map((msg) => {
+              {messages.map((msg, msgIdx) => {
                 const text = extractTextContent(msg);
+                const reasoning = msg.role === "assistant" ? extractReasoningContent(msg) : "";
+                const msgHasReasoning = hasReasoning(msg);
+                const showReasoning = visibleReasoning.has(msg.id);
+                const isLastMsg = msgIdx === messages.length - 1;
+                const isStreamingThis = isStreaming && isLastMsg;
+
+                const textParts = msg.parts?.filter(
+                  (p) => isTextUIPart(p) && p.text.trim(),
+                ) as Array<{ type: "text"; text: string }> | undefined;
+
+                const reasoningParts = msg.parts?.filter(
+                  (p) => isReasoningUIPart(p) && p.text.trim(),
+                ) as Array<{ type: "reasoning"; text: string }> | undefined;
+
+                const textSoFar = textParts?.map((p) => p.text).join("") ?? "";
+                const reasoningSoFar = reasoningParts?.map((p) => p.text).join("") ?? "";
+
+                const hasText = textSoFar.length > 0 || (isStreamingThis && !msgHasReasoning);
+                const hasReasoningContent = reasoningSoFar.length > 0;
+
                 return (
                   <motion.div
                     key={msg.id}
@@ -316,14 +369,74 @@ export default function ChatView({ chatId }: ChatViewProps) {
                         </div>
                       ) : (
                         <>
-                          {text ? (
-                            <div className="leading-relaxed">
-                              <RenderContent text={text} />
-                            </div>
+                          {isStreamingThis ? (
+                            <>
+                              {hasReasoningContent && (
+                                <div className="mb-2">
+                                  <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-1.5 font-medium">
+                                    <Brain size={11} />
+                                    Thinking...
+                                  </div>
+                                  <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-[13px] text-neutral-500 leading-relaxed whitespace-pre-wrap font-mono">
+                                    {reasoningSoFar}
+                                    <span className="animate-pulse">▌</span>
+                                  </div>
+                                </div>
+                              )}
+                              {textSoFar ? (
+                                <div className="leading-relaxed">
+                                  <RenderContent text={textSoFar} />
+                                </div>
+                              ) : !hasReasoningContent ? (
+                                <TypingDots />
+                              ) : null}
+                            </>
                           ) : (
-                            <TypingDots />
+                            <>
+                              {showReasoning && hasReasoningContent && (
+                                <div className="mb-2">
+                                  <button
+                                    onClick={() => toggleReasoning(msg.id)}
+                                    className="text-xs text-neutral-500 hover:text-neutral-700 mb-1 flex items-center gap-1"
+                                  >
+                                    <Brain size={11} />
+                                    Reasoning
+                                  </button>
+                                  <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-[13px] text-neutral-600 leading-relaxed whitespace-pre-wrap font-mono">
+                                    {reasoning}
+                                  </div>
+                                </div>
+                              )}
+                              {text ? (
+                                <div className="leading-relaxed">
+                                  <RenderContent text={text} />
+                                </div>
+                              ) : (
+                                <TypingDots />
+                              )}
+                              <div className="flex items-center gap-1 mt-2">
+                                {msgHasReasoning && !showReasoning && (
+                                  <button
+                                    onClick={() => toggleReasoning(msg.id)}
+                                    className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors flex items-center gap-1"
+                                  >
+                                    <Brain size={11} />
+                                    Show reasoning
+                                  </button>
+                                )}
+                                {showReasoning && (
+                                  <button
+                                    onClick={() => toggleReasoning(msg.id)}
+                                    className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors flex items-center gap-1"
+                                  >
+                                    <Brain size={11} />
+                                    Hide reasoning
+                                  </button>
+                                )}
+                                <MessageActions />
+                              </div>
+                            </>
                           )}
-                          <MessageActions />
                         </>
                       )}
                     </div>
@@ -331,19 +444,6 @@ export default function ChatView({ chatId }: ChatViewProps) {
                 );
               })}
             </AnimatePresence>
-
-            {(status === "streaming" || status === "submitted") && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-start gap-3"
-              >
-                <LLMLogo size={28} />
-                <div className="bg-[#f4f4f5] rounded-[18px] px-4 py-3">
-                  <Loader2 className="size-4 animate-spin text-neutral-400" />
-                </div>
-              </motion.div>
-            )}
 
             {error && (
               <div className="bg-red-50 text-red-600 rounded-lg px-4 py-3 text-sm">
@@ -372,18 +472,27 @@ export default function ChatView({ chatId }: ChatViewProps) {
             className="flex-1 disabled:bg-transparent border-0 placeholder:text-[15px] relative -top-[2px] resize-none bg-transparent shadow-none p-0 leading-relaxed focus-visible:ring-0 min-h-0 max-h-[200px] placeholder:text-neutral-400"
           />
           <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
+            onClick={() => {
+              if (status === "streaming" || status === "submitted") {
+                stop();
+              } else {
+                handleSubmit();
+              }
+            }}
             size="icon"
             className={cn(
               "size-8 shrink-0 rounded-full transition-colors",
-              canSubmit
+              canSubmit || status === "streaming" || status === "submitted"
                 ? "bg-black hover:bg-neutral-800 text-white"
                 : "bg-neutral-300 text-neutral-400 cursor-not-allowed hover:bg-neutral-300",
             )}
           >
-            {status === "submitted" ? (
-              <Loader2 className="animate-spin size-3" />
+            {status === "streaming" || status === "submitted" ? (
+              status === "submitted" ? (
+                <Loader2 className="animate-spin size-3" />
+              ) : (
+                <Square size={11} fill="currentColor" />
+              )
             ) : (
               <ArrowRight size={14} />
             )}

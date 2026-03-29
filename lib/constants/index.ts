@@ -1,6 +1,6 @@
 import { ProcessStatus } from "../types";
 
-export const MODEL = "openrouter/free"; // anthropic/claude-3-haiku | openai/gpt-oss-120b:free
+export const MODEL = "stepfun/step-3.5-flash:free";
 
 export const PROCESS_STATUS_DESCRIPTIONS: Record<ProcessStatus, string> = {
   scraping: "Reading your website...",
