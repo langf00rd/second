@@ -175,6 +175,8 @@ Rules:
         break;
       }
 
+      const toolResults: Array<{ toolName: string; args: Record<string, unknown>; result: string }> = [];
+
       for (const toolCall of toolCalls) {
         const toolName = toolCall.toolName as string;
         const rawInput = (toolCall as { input?: unknown }).input;
@@ -200,13 +202,22 @@ Rules:
           toolResult = `Tool error: ${err instanceof Error ? err.message : "Unknown"}`;
         }
 
+        toolResults.push({ toolName, args, result: toolResult });
+      }
+
+      if (toolResults.length > 0) {
+        const toolMessages = toolResults.map(
+          ({ toolName, args, result }) =>
+            ({
+              role: "user" as const,
+              content: `[tool: ${toolName}]\nInput: ${JSON.stringify(args)}\n\nResult:\n${result}`,
+            }),
+        );
+
         lastMessages = [
           ...lastMessages,
           { role: "assistant" as const, content: currentText },
-          {
-            role: "user" as const,
-            content: `[tool: ${toolName}]\nInput: ${JSON.stringify(args)}\n\nResult:\n${toolResult}`,
-          },
+          ...toolMessages,
         ];
       }
     }
