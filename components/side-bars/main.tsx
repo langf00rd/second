@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/popover";
 import { getCurrentUser, signOut } from "@/lib/auth";
 import type { Chat } from "@/lib/supabase/db";
-import { createChat, deleteChat, getUserChats } from "@/lib/supabase/db";
+import { createChat, deleteChat, getUserChats, updateChatTitle } from "@/lib/supabase/db";
 import { cn } from "@/lib/utils";
 import {
   Gift,
@@ -36,6 +36,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { Spinner } from "../ui/spinner";
 
 function LLMLogo({
@@ -170,6 +171,9 @@ export function MainSidebar() {
   } = useSidebar();
 
   const [deleteDialogChat, setDeleteDialogChat] = useState<Chat | null>(null);
+  const [editDialogChat, setEditDialogChat] = useState<Chat | null>(null);
+  const [editTitleValue, setEditTitleValue] = useState("");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
 
   const activeChatId = pathname.startsWith("/chat/")
     ? pathname.split("/")[2]
@@ -231,6 +235,25 @@ export function MainSidebar() {
     setDeleteDialogChat(chat);
   }
 
+  function handleOpenEditDialog(chat: Chat, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditDialogChat(chat);
+    setEditTitleValue(chat.title);
+  }
+
+  async function handleSaveTitle() {
+    if (!editDialogChat || !editTitleValue.trim()) return;
+    setIsEditingTitle(true);
+    const updated = await updateChatTitle(editDialogChat.id, editTitleValue.trim());
+    if (updated) {
+      setChats((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
+    }
+    setIsEditingTitle(false);
+    setEditDialogChat(null);
+  }
+
   const ChatListItem = ({ chat }: { chat: Chat }) => (
     <li
       role="button"
@@ -254,6 +277,15 @@ export function MainSidebar() {
           <MoreHorizontal size={16} />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
+          <DropdownMenuItem
+            className="flex cursor-pointer"
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              handleOpenEditDialog(chat, e);
+            }}
+          >
+            Edit title
+          </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive flex cursor-pointer"
             onClick={(e: React.MouseEvent) => {
@@ -426,6 +458,34 @@ export function MainSidebar() {
             </Button>
             <Button variant="destructive" onClick={handleDeleteChat}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!editDialogChat}
+        onOpenChange={(open: boolean) => !open && setEditDialogChat(null)}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Edit chat title</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={editTitleValue}
+            onChange={(e) => setEditTitleValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSaveTitle();
+              if (e.key === "Escape") setEditDialogChat(null);
+            }}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogChat(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTitle} disabled={isEditingTitle || !editTitleValue.trim()}>
+              {isEditingTitle ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
