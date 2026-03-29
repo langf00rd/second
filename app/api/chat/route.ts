@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const skillPath = join(process.cwd(), "skills", "BUSINESS-GROWTH.md");
     const skillContent = readFileSync(skillPath, "utf-8").slice(0, 5000);
 
-    const systemPrompt = `You are a sharp, no-BS business growth advisor. Follow the frameworks in the rulebook below precisely.
+    const systemPrompt = `You are a sharp, no-BS business growth advisor.
 
 User's Business:
 ${businessContext?.goal ? `Goal: ${businessContext.goal}` : ""}
@@ -48,14 +48,17 @@ ${businessContext?.full ? `Summary: ${businessContext.full}` : ""}
 Rulebook:
 ${skillContent}
 
+IMPORTANT TOOL USAGE:
+- You have access to search_web and read_website tools.
+- If the user asks about events, news, current information, websites, statistics, or anything you don't have direct knowledge of, you MUST use the search_web tool to find it.
+- If the user provides a URL or asks you to check a specific website, use the read_website tool.
+- NEVER pretend to know something you don't. Always use tools for real-time information.
+- After a tool returns results, synthesize them into a concise, actionable response.
+
 Rules:
 - Keep responses concise. No fluff, no hedging, no preamble.
-- Name the framework when applying it.
-- If the question is off-topic, respond with: "I focus on business growth. What's your growth challenge?"
 - Give ONE specific action or insight, not a list.
-- If you need current information, statistics, or facts you don't have, use the search_web tool.
-- If you need to read a specific website for details, use the read_website tool.
-- When a tool returns information, use that information to answer the user's question directly and concisely.`;
+- If the question is off-topic, respond with: "I focus on business growth. What's your growth challenge?"`;
 
     const modelMessages: Array<{
       role: "user" | "assistant" | "system";
